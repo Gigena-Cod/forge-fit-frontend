@@ -1,0 +1,118 @@
+.cover {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  padding: clamp(2rem, 5vw, 5rem);
+  overflow: hidden;
+  background: var(--ff-color-surface-container-lowest);
+}
+
+.cover__spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 30%;
+  width: 3px;
+  background: var(--ff-color-primary-container);
+}
+
+.cover__eyebrow,
+.cover__label,
+.cover__chip,
+.cover__number {
+  margin: 0;
+  font-family: var(--ff-font-label);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.cover__eyebrow {
+  z-index: 1;
+}
+
+.cover__title-block {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  max-width: 58rem;
+  padding: 4rem 0;
+}
+
+.cover__number {
+  display: block;
+  margin-bottom: 1rem;
+  color: var(--ff-color-primary);
+}
+
+.cover h1 {
+  max-width: 9ch;
+  margin: 0;
+  color: var(--ff-color-on-surface);
+  font-family: var(--ff-font-display);
+  font-size: clamp(4rem, 12vw, 10rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.cover__rule {
+  width: min(100%, 25rem);
+  height: 6px;
+  margin: 2rem 0 1rem;
+  background: var(--ff-color-primary-container);
+}
+
+.cover__subtitle {
+  margin: 0;
+  font-family: var(--ff-font-display);
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cover__details {
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 32rem) auto;
+  gap: 1rem 3rem;
+  align-items: end;
+  padding-top: 2rem;
+  border-top: 2px solid var(--ff-color-on-surface);
+}
+
+.cover__label {
+  grid-column: 1 / -1;
+  color: var(--ff-color-on-surface-variant);
+}
+
+.cover__body {
+  max-width: 42ch;
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.cover__chip {
+  justify-self: start;
+  padding: 0.75rem 1rem;
+  color: var(--ff-color-on-primary);
+  background: var(--ff-color-primary);
+}
+
+@media (max-width: 640px) {
+  .cover {
+    padding: 2rem 1.5rem;
+  }
+
+  .cover__spine {
+    left: auto;
+    right: 1.5rem;
+  }
+
+  .cover__details {
+    grid-template-columns: 1fr;
+  }
+}
