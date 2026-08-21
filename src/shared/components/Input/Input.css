@@ -1,0 +1,83 @@
+.input {
+  display: grid;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.input__field {
+  position: relative;
+}
+
+.input__control {
+  width: 100%;
+  height: 2.8rem;
+  padding: 0.75rem 0.875rem;
+  color: var(--ff-color-on-surface);
+  border: 1px solid var(--ff-color-outline);
+  border-radius: 0.65rem;
+  outline: none;
+  background: var(--ff-color-surface);
+}
+
+.input__control::placeholder {
+  color: var(--ff-color-on-surface-variant);
+  opacity: 0.68;
+}
+
+.input__control:focus {
+  border-color: var(--ff-color-primary);
+  box-shadow: 0 0 0 3px rgba(230, 0, 0, 0.1);
+}
+
+.input--error .input__control {
+  border-color: var(--ff-color-error);
+}
+
+.input--disabled .input__control {
+  cursor: not-allowed;
+  background: var(--ff-color-surface-container);
+}
+
+.input__control:read-only {
+  cursor: default;
+  background: var(--ff-color-surface-container-low);
+}
+
+.input__control--has-start-icon {
+  padding-left: 2.75rem;
+}
+.input__control--has-end-icon {
+  padding-right: 2.75rem;
+}
+
+.input__icon {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  place-items: center;
+  transform: translateY(-50%);
+  color: var(--ff-color-on-surface-variant);
+  border: 0;
+  background: transparent;
+}
+
+.input__icon--start {
+  left: 0.15rem;
+}
+.input__icon--end {
+  right: 0.15rem;
+  cursor: pointer;
+}
+.input__icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}

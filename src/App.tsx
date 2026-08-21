@@ -1,25 +1,66 @@
-import './App.css'
+import "./App.css";
+import { Sidebar } from "./shared/components/Sidebar/index.ts";
+import { Header } from "./shared/components/Header/index.ts";
+import { MembersPage } from "./modules/members/presentations/Page.tsx";
+import { HomePage } from "./modules/home/presentations/Page.tsx";
+import { LoginPage } from "./modules/auth/presentations/LoginPage.tsx";
+import { RegisterPage } from "./modules/auth/presentations/RegisterPage.tsx";
+import { MemberDetailPage } from "./modules/members/presentations/Detail/Page.tsx";
+import { PaymentsPage } from "./modules/payments/presentations/List/Page.tsx";
+import { AttendancePage } from "./modules/attendance/presentations/List/Page.tsx";
+import { SettingsPage } from "./modules/settings/presentations/Page.tsx";
+import { ToastifyProvider } from './shared/components/Toastify/index.ts'
 
 function App() {
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+
+  if (pathname === "/auth/register") {
+    return <RegisterPage />;
+  }
+
+  if (pathname === "/auth/login") {
+    return <LoginPage />;
+  }
+
+  const isMemberDetailPage = pathname.startsWith("/members/");
+  const isMembersPage = pathname === "/members" || isMemberDetailPage;
+  const isPaymentsPage = pathname === "/payments";
+  const isAttendancePage = pathname === "/attendance";
+  const isSettingsPage = pathname === "/settings";
+  const page = isMemberDetailPage ? (
+    <MemberDetailPage />
+  ) : isMembersPage ? (
+    <MembersPage />
+  ) : isPaymentsPage ? (
+    <PaymentsPage />
+  ) : isAttendancePage ? (
+    <AttendancePage />
+  ) : isSettingsPage ? (
+    <SettingsPage />
+  ) : (
+    <HomePage />
+  );
+  const title = isMemberDetailPage
+    ? "Detalle del socio"
+    : isMembersPage
+      ? "Socios"
+      : isPaymentsPage
+        ? "Pagos"
+        : isAttendancePage
+          ? "Asistencias"
+          : isSettingsPage
+            ? "Configuración"
+            : "Inicio";
+
   return (
-    <main className="cover">
-      <div className="cover__spine" aria-hidden="true" />
-      <p className="cover__eyebrow">FORGEFIT / ATHLETIC ACADEMY</p>
-
-      <section className="cover__title-block">
-        <span className="cover__number">01</span>
-        <h1>TRAIN WITH<br />INTENT.</h1>
-        <div className="cover__rule" />
-        <p className="cover__subtitle">Performance is a discipline.</p>
-      </section>
-
-      <section className="cover__details">
-        <p className="cover__label">FOUNDATION PROGRAM</p>
-        <p className="cover__body">A precise framework for strength, conditioning and sustainable athletic progress.</p>
-        <div className="cover__chip">2026 EDITION</div>
-      </section>
-    </main>
-  )
+    <ToastifyProvider>
+    <>
+      <Sidebar />
+      <Header title={title} />
+      <div className="app-shell">{page}</div>
+    </>
+    </ToastifyProvider>
+  );
 }
 
-export default App
+export default App;

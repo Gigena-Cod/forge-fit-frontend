@@ -7,86 +7,89 @@
  */
 export const theme = {
   colors: {
-    surface: '#131313',
-    surfaceDim: '#131313',
-    surfaceBright: '#393939',
-    surfaceContainerLowest: '#0e0e0e',
-    surfaceContainerLow: '#1c1b1b',
-    surfaceContainer: '#20201f',
-    surfaceContainerHigh: '#2a2a2a',
-    surfaceContainerHighest: '#353535',
-    onSurface: '#e5e2e1',
-    onSurfaceVariant: '#e9bcb5',
-    inverseSurface: '#e5e2e1',
-    inverseOnSurface: '#313030',
-    outline: '#b08781',
-    outlineVariant: '#5f3f3a',
-    surfaceTint: '#ffb4a8',
-    primary: '#ffb4a8',
-    onPrimary: '#690000',
-    primaryContainer: '#e60000',
-    onPrimaryContainer: '#fff7f5',
-    inversePrimary: '#c00000',
-    secondary: '#c6c6c6',
-    onSecondary: '#303030',
-    secondaryContainer: '#474747',
-    onSecondaryContainer: '#b5b5b5',
-    tertiary: '#c6c6c7',
-    onTertiary: '#2f3131',
-    tertiaryContainer: '#717272',
-    onTertiaryContainer: '#f8f8f8',
-    background: '#131313',
-    onBackground: '#e5e2e1',
-    error: '#ffb4ab',
-    onError: '#690005',
-    errorContainer: '#93000a',
-    onErrorContainer: '#ffdad6',
-    primaryFixed: '#ffdad4',
-    primaryFixedDim: '#ffb4a8',
-    onPrimaryFixed: '#410000',
-    onPrimaryFixedVariant: '#930100',
-    secondaryFixed: '#e2e2e2',
-    secondaryFixedDim: '#c6c6c6',
-    onSecondaryFixed: '#1b1b1b',
-    onSecondaryFixedVariant: '#474747',
-    tertiaryFixed: '#e2e2e2',
-    tertiaryFixedDim: '#c6c6c7',
-    onTertiaryFixed: '#1a1c1c',
-    onTertiaryFixedVariant: '#454747',
-    surfaceVariant: '#353535',
+    surface: "#ffffff",
+    surfaceDim: "#f5f6f7",
+    surfaceBright: "#ffffff",
+    surfaceContainerLowest: "#ffffff",
+    surfaceContainerLow: "#f8f8f8",
+    surfaceContainer: "#f3f4f5",
+    surfaceContainerHigh: "#ebedef",
+    surfaceContainerHighest: "#e1e4e7",
+    onSurface: "#240b0b",
+    onSurfaceVariant: "#637182",
+    inverseSurface: "#240b0b",
+    inverseOnSurface: "#ffffff",
+    outline: "#d6dbe0",
+    outlineVariant: "#e8ebed",
+    surfaceTint: "#e60000",
+    primary: "#e60000",
+    onPrimary: "#ffffff",
+    primaryContainer: "#e60000",
+    onPrimaryContainer: "#ffffff",
+    inversePrimary: "#ffb4a8",
+    secondary: "#637182",
+    onSecondary: "#ffffff",
+    secondaryContainer: "#e8ebed",
+    onSecondaryContainer: "#240b0b",
+    tertiary: "#64748b",
+    onTertiary: "#ffffff",
+    tertiaryContainer: "#e7edf4",
+    onTertiaryContainer: "#240b0b",
+    background: "#ffffff",
+    onBackground: "#240b0b",
+    error: "#b42318",
+    onError: "#ffffff",
+    errorContainer: "#fee4e2",
+    onErrorContainer: "#7a271a",
+    primaryFixed: "#ffe1de",
+    primaryFixedDim: "#ffb4a8",
+    onPrimaryFixed: "#410000",
+    onPrimaryFixedVariant: "#930100",
+    secondaryFixed: "#e8ebed",
+    secondaryFixedDim: "#cbd2d9",
+    onSecondaryFixed: "#240b0b",
+    onSecondaryFixedVariant: "#4a5562",
+    tertiaryFixed: "#e7edf4",
+    tertiaryFixedDim: "#cbd5e1",
+    onTertiaryFixed: "#240b0b",
+    onTertiaryFixedVariant: "#475569",
+    surfaceVariant: "#f3f4f5",
   },
   typography: {
-    display: "'Lexend', Arial, sans-serif",
-    body: "'Newsreader', Georgia, serif",
-    label: "'Lexend', Arial, sans-serif",
+    display: "'Rethink Sans', Arial, sans-serif",
+    body: "'Rethink Sans', Arial, sans-serif",
+    label: "'Rethink Sans', Arial, sans-serif",
   },
   spacing: {
-    pageMargin: '24mm',
-    gutter: '8mm',
-    stackSmall: '4px',
-    stackMedium: '16px',
-    stackLarge: '48px',
-    blockPadding: '32px',
+    pageMargin: "24mm",
+    gutter: "8mm",
+    stackSmall: "4px",
+    stackMedium: "16px",
+    stackLarge: "48px",
+    blockPadding: "32px",
   },
-  radius: '0px',
-} as const
+  radius: "0px",
+} as const;
 
-type TokenGroup = Record<string, string>
+type TokenGroup = Record<string, string>;
 
 function setCssVariables(group: TokenGroup, prefix: string) {
   for (const [name, value] of Object.entries(group)) {
-    document.documentElement.style.setProperty(`--ff-${prefix}-${toKebabCase(name)}`, value)
+    document.documentElement.style.setProperty(
+      `--ff-${prefix}-${toKebabCase(name)}`,
+      value,
+    );
   }
 }
 
 function toKebabCase(value: string) {
-  return value.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
+  return value.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
 }
 
 /** Registra los tokens para que cualquier archivo .css normal pueda usarlos. */
 export function applyTheme() {
-  setCssVariables(theme.colors, 'color')
-  setCssVariables(theme.typography, 'font')
-  setCssVariables(theme.spacing, 'space')
-  document.documentElement.style.setProperty('--ff-radius', theme.radius)
+  setCssVariables(theme.colors, "color");
+  setCssVariables(theme.typography, "font");
+  setCssVariables(theme.spacing, "space");
+  document.documentElement.style.setProperty("--ff-radius", theme.radius);
 }

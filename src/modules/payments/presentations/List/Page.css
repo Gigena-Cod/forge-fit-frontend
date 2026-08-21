@@ -1,0 +1,31 @@
+.payments-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  overflow: hidden;
+  padding: 1rem 1rem 1rem 0;
+  background: var(--ff-color-surface-dim);
+}
+.payments-page__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 0;
+  padding: 2rem;
+  border-radius: 1.5rem;
+  background: var(--ff-color-surface);
+}
+.payments-page__content > .input {
+  flex: 0 0 auto;
+  max-width: 32rem;
+}
+.payments-page__content > .table-wrapper { flex: 1 1 auto; min-height: 0; overflow: auto; }
+@media (max-width: 640px) {
+  .payments-page {
+    padding: 1rem;
+  }
+  .payments-page__content {
+    padding: 1.25rem;
+  }
+}

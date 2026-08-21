@@ -1,0 +1,25 @@
+.member-row-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+}
+.member-row-actions__action {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--ff-color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  padding: 0;
+  text-decoration: none;
+}
+.member-row-actions__action:hover .text,
+.member-row-actions__action:focus-visible .text {
+  color: var(--ff-color-primary);
+  text-decoration: underline;
+}
+.member-row-actions__delete .text {
+  color: var(--ff-color-error);
+}

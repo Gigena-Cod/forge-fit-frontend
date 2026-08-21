@@ -1,0 +1,6 @@
+import { Input, InputType } from '../../../../../shared/components/Input/index.ts'
+import { Text, TextSize, TextWeight } from '../../../../../shared/components/Text/index.ts'
+import type { Gym } from '../../../models/Gym.ts'
+
+type Props = { gym: Gym; errors: Record<string, string> }
+export function GymSettingsForm({ gym, errors }: Props) { return <section className="settings-form" aria-labelledby="gym-settings-title"><Text id="gym-settings-title" as="h2" size={TextSize.Large} weight={TextWeight.Bold}>Datos del gimnasio</Text><div className="settings-form__fields"><Input name="gymName" label="Nombre del gimnasio" placeholder="Ingresa el nombre del gimnasio" defaultValue={gym.name} error={Boolean(errors.gymName)} helperText={errors.gymName} /><Input name="gymPhone" type={InputType.Tel} label="Teléfono" placeholder="Ingresa el teléfono" defaultValue={gym.phone} error={Boolean(errors.gymPhone)} helperText={errors.gymPhone} /><Input name="gymAddress" label="Dirección" placeholder="Ingresa la dirección" defaultValue={gym.address} error={Boolean(errors.gymAddress)} helperText={errors.gymAddress} /><Input name="gymContactEmail" type={InputType.Email} label="Email de contacto" placeholder="Ingresa el email de contacto" defaultValue={gym.contactEmail} error={Boolean(errors.gymContactEmail)} helperText={errors.gymContactEmail} /></div></section> }

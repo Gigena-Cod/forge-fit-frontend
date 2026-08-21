@@ -1,0 +1,5 @@
+.toastify { position: fixed; z-index: 100; top: 1rem; right: 1rem; display: grid; gap: .75rem; width: min(calc(100vw - 2rem), 25rem); }
+.toastify__item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border-radius: .75rem; box-shadow: 0 .75rem 2rem rgba(36, 11, 11, .2); animation: toastify-enter 180ms ease-out; }
+.toastify__item--success { color: #fff; background: #5f1717; }.toastify__item--error { color: var(--ff-color-on-error); background: var(--ff-color-error); }.toastify__item--warning { color: #634009; background: #f6df9d; }
+.toastify__close { padding: 0; color: inherit; cursor: pointer; border: 0; background: transparent; font-size: 1.25rem; line-height: 1; }
+@keyframes toastify-enter { from { opacity: 0; transform: translateY(-.5rem); } to { opacity: 1; transform: translateY(0); } }

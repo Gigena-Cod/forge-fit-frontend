@@ -1,0 +1,170 @@
+.login-page {
+  display: grid;
+  grid-template-columns: minmax(20rem, 2fr) minmax(24rem, 3fr);
+  min-height: 100dvh;
+}
+.login-visual-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  overflow: hidden;
+  color: var(--ff-color-inverse-on-surface);
+  background: var(--ff-color-inverse-surface);
+}
+.login-brand {
+  display: inline-flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.login-brand__mark,
+.login-form-panel__mark {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  place-items: center;
+  color: var(--ff-color-on-primary);
+  border-radius: 0.55rem;
+  background: var(--ff-color-primary-container);
+  font-family: var(--ff-font-label);
+  font-weight: 800;
+}
+.login-brand .text {
+  color: var(--ff-color-inverse-on-surface);
+}
+.login-visual-panel__content {
+  display: grid;
+  gap: 1.15rem;
+  width: min(100%, 34rem);
+  margin: auto;
+}
+.login-visual-panel__content .text {
+  color: var(--ff-color-inverse-on-surface);
+}
+.login-visual-panel__content .text--color-secondary {
+  color: #e7b4ad;
+}
+.login-visual-panel__art {
+  position: relative;
+  width: min(100%, 24rem);
+  height: 12rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #743535;
+  border-radius: 1rem;
+  background: #320d0d;
+}
+.login-visual-panel__bar,
+.login-visual-panel__plate,
+.login-visual-panel__line {
+  position: absolute;
+  display: block;
+}
+.login-visual-panel__bar {
+  top: 50%;
+  right: 12%;
+  left: 12%;
+  height: 0.7rem;
+  transform: translateY(-50%);
+  background: var(--ff-color-primary-container);
+}
+.login-visual-panel__plate {
+  top: 50%;
+  width: 3.5rem;
+  height: 6.5rem;
+  transform: translateY(-50%);
+  border-radius: 0.35rem;
+  background: #ffb4a8;
+}
+.login-visual-panel__plate--left {
+  left: 15%;
+}
+.login-visual-panel__plate--right {
+  right: 15%;
+}
+.login-visual-panel__line {
+  width: 72%;
+  height: 1px;
+  left: 14%;
+  background: #743535;
+}
+.login-visual-panel__line--top {
+  top: 20%;
+}
+.login-visual-panel__line--bottom {
+  bottom: 20%;
+}
+.login-visual-panel__footer {
+  margin-top: auto;
+}
+.login-visual-panel__footer.text {
+  color: #e7b4ad;
+}
+.login-form-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 2rem;
+  background: var(--ff-color-surface);
+}
+.login-form-panel__card {
+  width: min(100%, 24rem);
+}
+.login-form-panel__intro {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+.login-form {
+  display: grid;
+  gap: 1rem;
+}
+.login-form__options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.login-form__text-action {
+  padding: 0;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  text-decoration: none;
+}
+.login-form__text-action .text {
+  color: var(--ff-color-primary);
+}
+.login-form__submit {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+.login-form__register {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+}
+.login-form-panel__footer {
+  position: absolute;
+  bottom: 2rem;
+  display: flex;
+  gap: 1.5rem;
+}
+@media (max-width: 760px) {
+  .login-page {
+    display: block;
+  }
+  .login-visual-panel {
+    display: none;
+  }
+  .login-form-panel {
+    min-height: 100dvh;
+  }
+  .login-form-panel__footer {
+    position: static;
+    margin-top: 3rem;
+  }
+}

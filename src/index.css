@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,400i&display=swap');
-
 * {
   box-sizing: border-box;
 }
@@ -11,6 +9,8 @@ html {
 body {
   min-width: 320px;
   min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   margin: 0;
   color: var(--ff-color-on-background);
   background: var(--ff-color-background);

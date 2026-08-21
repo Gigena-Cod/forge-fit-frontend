@@ -1,0 +1,48 @@
+.text {
+  margin: 0;
+  color: var(--ff-color-on-surface);
+  font-family: var(--ff-font-body);
+}
+
+.text--size-small {
+  font-size: 0.75rem;
+}
+.text--size-medium {
+  font-size: 0.9375rem;
+}
+.text--size-large {
+  font-size: 1.25rem;
+}
+.text--size-x-large {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+}
+.text--size-xx-large {
+  font-size: clamp(2.5rem, 5vw, 4.25rem);
+}
+.text--weight-regular {
+  font-weight: 400;
+}
+.text--weight-medium {
+  font-weight: 500;
+}
+.text--weight-semibold {
+  font-weight: 600;
+}
+.text--weight-bold {
+  font-weight: 700;
+}
+.text--weight-extra-bold {
+  font-weight: 800;
+}
+.text--color-primary {
+  color: var(--ff-color-on-surface);
+}
+.text--color-secondary {
+  color: var(--ff-color-on-surface-variant);
+}
+.text--color-accent {
+  color: var(--ff-color-primary);
+}
+.text--color-danger {
+  color: var(--ff-color-error);
+}
