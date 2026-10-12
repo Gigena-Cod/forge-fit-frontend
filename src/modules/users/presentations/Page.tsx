@@ -48,11 +48,11 @@ function UserEditor({ user, roles, onClose, onSaved }: { user: User | null; role
       <label>Teléfono<input name="phone" type="tel" defaultValue={user?.phone} required disabled={busy} autoComplete="tel" /></label>
       <label>Email<input name="email" type="email" defaultValue={user?.email} required disabled={busy} autoComplete="email" /></label>
       {!user && <label>Contraseña inicial<input name="password" type="password" minLength={8} required disabled={busy} autoComplete="new-password" /><span className="operations-muted">Mínimo 8 caracteres.</span></label>}
-      <label>Rol<select value={role} onChange={event => setRole(event.target.value as User['role'])} disabled={busy}>
+      <label htmlFor="user-role"><span id="user-role-label">Rol</span><select id="user-role" aria-labelledby="user-role-label" value={role} onChange={event => setRole(event.target.value as User['role'])} disabled={busy}>
         {user?.role === 'OWNER' && <option value="OWNER">Propietario (actual)</option>}
         {roles.filter(item => item.code !== 'OWNER').map(item => <option key={item.code} value={item.code}>{roleLabels[item.code]}</option>)}
       </select></label>
-      {user && <label>Estado<select value={status} onChange={event => setStatus(event.target.value as User['accountStatus'])} disabled={busy}><option value="ACTIVE">Activo</option><option value="INACTIVE">Inactivo</option></select></label>}
+      {user && <label htmlFor="user-status"><span id="user-status-label">Estado</span><select id="user-status" aria-labelledby="user-status-label" value={status} onChange={event => setStatus(event.target.value as User['accountStatus'])} disabled={busy}><option value="ACTIVE">Activo</option><option value="INACTIVE">Inactivo</option></select></label>}
     </div>
     {user?.accountStatus === 'ACTIVE' && status === 'INACTIVE' && <label><span><input type="checkbox" required disabled={busy} /> Confirmo que este usuario dejará de acceder al sistema.</span></label>}
     {user?._id === session.user.id && <p className="operations-muted">Al guardar tus datos, vas a tener que iniciar sesión nuevamente.</p>}
