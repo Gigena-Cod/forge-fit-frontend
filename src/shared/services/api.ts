@@ -1,4 +1,4 @@
-const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
+const apiUrl = import.meta.env.API_URL ?? 'http://localhost:3000/api'
 const tokenKey = 'forgefit_access_token'
 
 type ApiErrorResponse = { error?: { message?: string; code?: string } }
