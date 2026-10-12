@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import "./Sidebar.css";
+import { canVisit, useSession } from '../../../modules/auth/session.ts';
 
 function DashboardIcon() {
   return (
@@ -67,12 +68,16 @@ const navigationItems: NavigationItem[] = [
   { label: "Socios", href: "/members", icon: <MembersIcon /> },
   { label: "Pagos", href: "/payments", icon: <PaymentsIcon /> },
   { label: "Asistencias", href: "/attendance", icon: <AttendanceIcon /> },
+  { label: "Ingreso QR", href: "/check-in", icon: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5M4 12h16" /><rect x="8" y="7" width="8" height="10" rx="1" /></svg> },
+  { label: "Usuarios", href: "/users", icon: <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" /><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5" /></svg> },
+  { label: "Reportes", href: "/reports", icon: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v18h17M8 17v-5M13 17V7M18 17V4" /></svg> },
   { label: "Configuración", href: "/settings", icon: <SettingsIcon /> },
 ];
 
 /** Navegación colapsada: su expansión se agregará en una iteración posterior. */
 export function Sidebar() {
   const pathname = window.location.pathname;
+  const { user } = useSession();
 
   return (
     <aside className="sidebar" aria-label="Navegación principal">
@@ -80,7 +85,7 @@ export function Sidebar() {
         <ForgeFitMark />
       </a>
       <nav className="sidebar__navigation">
-        {navigationItems.map((item) => (
+        {navigationItems.filter(item => canVisit(user.role, item.href)).map((item) => (
           <a
             key={item.label}
             className={`sidebar__item${pathname === item.href || (item.href === "/members" && pathname.startsWith("/members/")) ? " sidebar__item--active" : ""}`}

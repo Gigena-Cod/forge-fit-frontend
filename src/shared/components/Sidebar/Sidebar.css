@@ -72,9 +72,12 @@
     grid-template-rows: auto;
     padding: 0.4rem;
     transform: translateX(-50%);
+    max-width: calc(100vw - 1.5rem);
+    overflow-x: auto;
   }
 
   .sidebar__navigation {
+    width: max-content;
     grid-auto-flow: column;
     align-content: center;
     margin-top: 0;
