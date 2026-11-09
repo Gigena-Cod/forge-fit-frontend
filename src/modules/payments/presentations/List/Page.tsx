@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { RegisterPayment } from "./RegisterPayment.tsx";
+import "../../../../shared/styles/operations.css";
 import { Input, InputType } from "../../../../shared/components/Input/index.ts";
 import {
   Table,
@@ -16,7 +18,6 @@ import {
 } from "../../models/Payment.ts";
 import { useGetPayments } from "../hooks/useGetPayments.ts";
 import "./Page.css";
-import { useErrorToast } from '../../../../shared/hooks/useErrorToast.ts'
 
 const labels = {
   [PaymentStatus.Paid]: "Pagado",
@@ -35,10 +36,10 @@ const money = new Intl.NumberFormat("es-AR", {
 });
 function date(value: string | null) {
   if (!value) return "-";
-  const parsedDate = new Date(value.includes("T") ? value : `${value}T12:00:00`);
+  const parsedDate = new Date(value);
   return Number.isNaN(parsedDate.getTime())
     ? "-"
-    : new Intl.DateTimeFormat("es-AR").format(parsedDate);
+    : new Intl.DateTimeFormat("es-AR", { timeZone: "UTC" }).format(parsedDate);
 }
 function period(value: string) {
   return new Intl.DateTimeFormat("es-AR", {
@@ -108,44 +109,62 @@ const columns: TableColumn<Payment>[] = [
 ];
 
 export function PaymentsPage() {
-  const { payments, isLoading, error } = useGetPayments();
+  const [revision, setRevision] = useState(0);
+  const [page, setPage] = useState(1);
+  const [showForm, setShowForm] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [query, setQuery] = useState("");
-  useErrorToast(error)
-  const filteredPayments = useMemo(() => {
-    const value = query.trim().toLocaleLowerCase();
-    return value
-      ? payments.filter((item) =>
-          [item.memberName, item.period, labels[item.status]].some((field) =>
-            field.toLocaleLowerCase().includes(value),
-          ),
-        )
-      : payments;
-  }, [payments, query]);
+  const { data, isLoading, error } = useGetPayments(page, query.trim(), revision);
+  const offset = data ? (data.page - 1) * data.limit : 0;
   return (
     <main className="payments-page">
-      <section className="payments-page__content">
-        <Input
-          type={InputType.Search}
-          label="Buscar pago"
-          placeholder="Buscar pago..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+      <section className="payments-page__content operations-content">
+        <div className="payments-page__toolbar">
+          <Input
+            type={InputType.Search}
+            label="Buscar pago"
+            placeholder="Buscar pago..."
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+              setSaved(false);
+            }}
+          />
+          <button className="button" type="button" aria-haspopup="dialog" onClick={() => setShowForm(true)}>Registrar pago</button>
+        </div>
+        {showForm && <RegisterPayment onCancel={() => setShowForm(false)} onSaved={() => {
+          setShowForm(false);
+          setQuery("");
+          setPage(1);
+          setSaved(true);
+          setRevision((value) => value + 1);
+        }} />}
+        {saved && !showForm && <p className="operations-success" role="status">Pago registrado.</p>}
         {isLoading && (
-          <Text color={TextColor.Secondary}>Cargando pagos...</Text>
+          <p role="status">Cargando pagos…</p>
         )}
-        {!isLoading &&
-          !error &&
-          (filteredPayments.length ? (
+        {error && <div className="operations-intro">
+          <p role="alert">No pudimos obtener los pagos.</p>
+          <button type="button" className="operations-secondary" onClick={() => setRevision(value => value + 1)}>Reintentar</button>
+        </div>}
+        {data && (data.items.length ? (
             <Table
               columns={columns}
-              data={filteredPayments}
+              data={data.items}
               getRowId={(item) => item.id}
               minWidth={1020}
             />
           ) : (
-            <Text color={TextColor.Secondary}>No hay pagos registrados.</Text>
+            <Text color={TextColor.Secondary}>{page > 1 ? "Esta página ya no tiene pagos." : query.trim() ? "No hay pagos que coincidan con la búsqueda." : "No hay pagos registrados."}</Text>
           ))}
+        <nav className="payments-page__pagination" aria-label="Paginación de pagos" hidden={page === 1 && !data?.total}>
+          <p role="status">{data?.items.length ? `Pagos ${offset + 1}–${offset + data.items.length} de ${data.total}` : `Página ${page}`}</p>
+          <div className="operations-actions">
+            <button type="button" className="operations-secondary" disabled={page === 1 || isLoading} onClick={() => setPage(value => value - 1)}>Anterior</button>
+            <button type="button" className="operations-secondary" disabled={!data || offset + data.limit >= data.total} onClick={() => setPage(value => value + 1)}>Siguiente</button>
+          </div>
+        </nav>
       </section>
     </main>
   );

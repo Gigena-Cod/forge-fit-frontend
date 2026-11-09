@@ -30,6 +30,73 @@ async function openMemberFixture(page: Page, role?: string) {
   await page.route(/\/api\/members\/member-1\/(payments|attendance)$/, route => route.fulfill({ json: { data: [] } }))
 }
 
+for (const existing of [false, true]) {
+  test(`register payment ${existing ? 'updates pending dues' : 'creates missing dues'}`, async ({ page }) => {
+    await mockApi(page, 'RECEPTIONIST')
+    let saved: Record<string, unknown> | undefined
+    const member = { id: 'member-1', name: 'Socio Demo', dni: '12345678' }
+    await page.route('**/api/members', route => route.fulfill({ json: { data: [member] } }))
+    await page.route('**/api/members/member-1/payments', route => route.fulfill({ json: {
+      data: existing ? [{ id: 'payment-1', period: '2026-11', status: 'PENDING' }] : [],
+    } }))
+    await page.route(/\/api\/payments(?:\/payment-1)?(?:\?.*)?$/, async route => {
+      if (route.request().method() === 'GET') {
+        const items = saved ? [{ ...saved, id: 'payment-1', memberId: member }] : []
+        return route.fulfill({ json: { data: { items, page: 1, limit: 20, total: items.length } } })
+      }
+      expect(route.request().method()).toBe(existing ? 'PUT' : 'POST')
+      saved = route.request().postDataJSON()
+      await route.fulfill({ json: { data: saved } })
+    })
+    await page.goto('/payments')
+    await page.getByRole('button', { name: 'Registrar pago' }).click()
+    await expect(page.getByRole('dialog', { name: 'Registrar pago' })).toBeVisible()
+    await page.getByLabel('Socio', { exact: true }).selectOption('member-1')
+    await page.getByLabel('Período', { exact: true }).fill('2026-11')
+    await page.getByLabel('Importe (ARS)').fill('30000')
+    await page.getByLabel('Fecha de pago').fill('2026-11-08')
+    await page.getByLabel('Medio de pago').selectOption('CASH')
+    await page.getByRole('button', { name: 'Guardar pago' }).click()
+    await expect(page.getByText('Pago registrado.')).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByRole('cell', { name: 'Pagado' })).toBeVisible()
+    expect(saved).toEqual({ memberId: 'member-1', period: '2026-11', amount: 30000, paymentDate: '2026-11-08', paymentMethod: 'CASH', status: 'PAID' })
+  })
+}
+
+test('payments paginate in server order and search from page one', async ({ page }) => {
+  await mockApi(page)
+  const payment = (id: string, name: string, paymentDate: string) => ({
+    id, memberId: { id, name }, paymentDate, period: '2026-11', amount: 30000, status: 'PAID', paymentMethod: 'CASH',
+  })
+  await page.route(/\/api\/payments\?/, route => {
+    const params = new URL(route.request().url()).searchParams
+    const number = Number(params.get('page'))
+    const limit = Number(params.get('limit'))
+    const query = params.get('q')
+    const items = query ? [payment('old', 'Socio antiguo', '2026-11-01')]
+      : number === 2 ? [payment('old', 'Socio antiguo', '2026-11-01')]
+      : Array.from({ length: 20 }, (_, index) =>
+        payment(String(index), `Socio ${index + 1}`, `2026-11-${String(30 - index).padStart(2, '0')}`))
+    return route.fulfill({ json: { data: { items, page: number, limit, total: query ? 1 : 21 } } })
+  })
+  await page.goto('/payments')
+  await expect(page.getByText('Pagos 1–20 de 21')).toBeVisible()
+  await expect(page.getByRole('row').nth(1)).toContainText('Socio 1')
+  await expect(page.getByRole('button', { name: 'Anterior' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Siguiente' }).click()
+  await expect(page.getByText('Pagos 21–21 de 21')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+  const search = page.waitForRequest(request => {
+    const url = new URL(request.url())
+    return url.pathname === '/api/payments' && url.searchParams.get('q') === 'antiguo' && url.searchParams.get('page') === '1'
+  })
+  await page.getByLabel('Buscar pago').fill('antiguo')
+  await search
+  await expect(page.getByText('Pagos 1–1 de 1')).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Socio antiguo' })).toBeVisible()
+})
+
 test('owner generates, reloads and renews a member QR', async ({ page }) => {
   await openMemberFixture(page)
   const writes: unknown[] = []
