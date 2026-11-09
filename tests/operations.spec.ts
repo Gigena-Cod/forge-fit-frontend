@@ -21,6 +21,126 @@ async function mockApi(page: Page, role = 'OWNER') {
   })
 }
 
+async function openMemberFixture(page: Page, role?: string) {
+  await mockApi(page, role)
+  await page.route(/\/api\/members\/member-1$/, route => route.fulfill({ json: { data: {
+    id: 'member-1', name: 'Socio Demo', dni: '12345678', phone: '3515550000',
+    email: 'socio@example.test', registrationDate: '2026-09-01', membershipStatus: 'ACTIVE',
+  } } }))
+  await page.route(/\/api\/members\/member-1\/(payments|attendance)$/, route => route.fulfill({ json: { data: [] } }))
+}
+
+for (const existing of [false, true]) {
+  test(`register payment ${existing ? 'updates pending dues' : 'creates missing dues'}`, async ({ page }) => {
+    await mockApi(page, 'RECEPTIONIST')
+    let saved: Record<string, unknown> | undefined
+    const member = { id: 'member-1', name: 'Socio Demo', dni: '12345678' }
+    await page.route('**/api/members', route => route.fulfill({ json: { data: [member] } }))
+    await page.route('**/api/members/member-1/payments', route => route.fulfill({ json: {
+      data: existing ? [{ id: 'payment-1', period: '2026-11', status: 'PENDING' }] : [],
+    } }))
+    await page.route(/\/api\/payments(?:\/payment-1)?(?:\?.*)?$/, async route => {
+      if (route.request().method() === 'GET') {
+        const items = saved ? [{ ...saved, id: 'payment-1', memberId: member }] : []
+        return route.fulfill({ json: { data: { items, page: 1, limit: 20, total: items.length } } })
+      }
+      expect(route.request().method()).toBe(existing ? 'PUT' : 'POST')
+      saved = route.request().postDataJSON()
+      await route.fulfill({ json: { data: saved } })
+    })
+    await page.goto('/payments')
+    await page.getByRole('button', { name: 'Registrar pago' }).click()
+    await expect(page.getByRole('dialog', { name: 'Registrar pago' })).toBeVisible()
+    await page.getByLabel('Socio', { exact: true }).selectOption('member-1')
+    await page.getByLabel('Período', { exact: true }).fill('2026-11')
+    await page.getByLabel('Importe (ARS)').fill('30000')
+    await page.getByLabel('Fecha de pago').fill('2026-11-08')
+    await page.getByLabel('Medio de pago').selectOption('CASH')
+    await page.getByRole('button', { name: 'Guardar pago' }).click()
+    await expect(page.getByText('Pago registrado.')).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByRole('cell', { name: 'Pagado' })).toBeVisible()
+    expect(saved).toEqual({ memberId: 'member-1', period: '2026-11', amount: 30000, paymentDate: '2026-11-08', paymentMethod: 'CASH', status: 'PAID' })
+  })
+}
+
+test('payments paginate in server order and search from page one', async ({ page }) => {
+  await mockApi(page)
+  const payment = (id: string, name: string, paymentDate: string) => ({
+    id, memberId: { id, name }, paymentDate, period: '2026-11', amount: 30000, status: 'PAID', paymentMethod: 'CASH',
+  })
+  await page.route(/\/api\/payments\?/, route => {
+    const params = new URL(route.request().url()).searchParams
+    const number = Number(params.get('page'))
+    const limit = Number(params.get('limit'))
+    const query = params.get('q')
+    const items = query ? [payment('old', 'Socio antiguo', '2026-11-01')]
+      : number === 2 ? [payment('old', 'Socio antiguo', '2026-11-01')]
+      : Array.from({ length: 20 }, (_, index) =>
+        payment(String(index), `Socio ${index + 1}`, `2026-11-${String(30 - index).padStart(2, '0')}`))
+    return route.fulfill({ json: { data: { items, page: number, limit, total: query ? 1 : 21 } } })
+  })
+  await page.goto('/payments')
+  await expect(page.getByText('Pagos 1–20 de 21')).toBeVisible()
+  await expect(page.getByRole('row').nth(1)).toContainText('Socio 1')
+  await expect(page.getByRole('button', { name: 'Anterior' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Siguiente' }).click()
+  await expect(page.getByText('Pagos 21–21 de 21')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+  const search = page.waitForRequest(request => {
+    const url = new URL(request.url())
+    return url.pathname === '/api/payments' && url.searchParams.get('q') === 'antiguo' && url.searchParams.get('page') === '1'
+  })
+  await page.getByLabel('Buscar pago').fill('antiguo')
+  await search
+  await expect(page.getByText('Pagos 1–1 de 1')).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Socio antiguo' })).toBeVisible()
+})
+
+test('owner generates, reloads and renews a member QR', async ({ page }) => {
+  await openMemberFixture(page)
+  const writes: unknown[] = []
+  let credential: { qrPayload: string; issuedAt: string } | undefined
+  await page.route('**/api/members/member-1/qr', async route => {
+    if (route.request().method() === 'POST') {
+      writes.push(route.request().postDataJSON())
+      credential = { qrPayload: `ffq_v1_demo_credential_${writes.length}`, issuedAt: '2026-09-01T12:00:00Z' }
+      if (writes.length === 2) return route.abort()
+    }
+    if (!credential) return route.fulfill({ status: 404, json: { error: { code: 'QR_NOT_ASSIGNED' } } })
+    await route.fulfill({ json: { data: credential } })
+  })
+  await page.goto('/members/member-1')
+  await page.getByRole('button', { name: 'Generar QR' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Credencial generada.' })).toBeVisible()
+  const qr = page.getByRole('img', { name: 'Código QR de ingreso del socio' })
+  await expect(qr).toHaveAttribute('src', /^data:image\/png;base64,/)
+  const firstImage = await qr.getAttribute('src')
+  await page.reload()
+  await expect(qr).toHaveAttribute('src', firstImage!)
+  page.once('dialog', dialog => dialog.dismiss())
+  await page.getByRole('button', { name: 'Renovar QR' }).click()
+  expect(writes).toEqual([{}])
+  page.once('dialog', dialog => dialog.accept())
+  await page.getByRole('button', { name: 'Renovar QR' }).click()
+  await expect(page.getByText(/No pudimos confirmar el cambio/)).toBeVisible()
+  await expect(qr).toBeVisible()
+  await expect(qr).not.toHaveAttribute('src', firstImage!)
+  expect(writes).toEqual([{}, { rotate: true }])
+})
+
+test('reception does not request or display member QR', async ({ page }) => {
+  await openMemberFixture(page, 'RECEPTIONIST')
+  const requests: string[] = []
+  page.on('request', request => {
+    if (request.url().endsWith('/member-1/qr')) requests.push(request.url())
+  })
+  await page.goto('/members/member-1')
+  await expect(page.getByRole('heading', { name: 'Datos personales' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Credencial QR' })).toHaveCount(0)
+  expect(requests).toEqual([])
+})
+
 test('check-in confirms access and locks further submissions until next entry', async ({ page }) => {
   await mockApi(page)
   const bodies: { qrPayload: string; requestId: string }[] = []

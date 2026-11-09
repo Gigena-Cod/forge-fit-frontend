@@ -16,10 +16,28 @@
   border-radius: 1.5rem;
   background: var(--ff-color-surface);
 }
-.payments-page__content > .input {
-  flex: 0 0 auto;
-  max-width: 32rem;
+.payments-page__toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: .75rem;
 }
+.payments-page__toolbar > .input { flex: 1 1 32rem; min-width: 0; max-width: 32rem; }
+.payments-page__toolbar > .button { flex: 0 0 auto; }
+.payments-page__pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
+.payments-page__pagination[hidden] { display: none; }
+.payment-dialog {
+  margin: auto;
+  width: min(36rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: clamp(1rem, 4vw, 2rem);
+  border: 1px solid var(--ff-color-outline);
+  border-radius: 1rem;
+  color: var(--ff-color-on-surface);
+  background: var(--ff-color-surface);
+}
+.payment-dialog::backdrop { background: rgba(36, 11, 11, .35); }
+.payment-dialog .operations-actions { justify-content: end; margin-top: .75rem; }
 .payments-page__content > .table-wrapper { flex: 1 1 auto; min-height: 0; overflow: auto; }
 @media (max-width: 640px) {
   .payments-page {
@@ -29,3 +47,4 @@
     padding: 1.25rem;
   }
 }
+.payment-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
