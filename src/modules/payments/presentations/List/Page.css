@@ -24,8 +24,6 @@
 }
 .payments-page__toolbar > .input { flex: 1 1 32rem; min-width: 0; max-width: 32rem; }
 .payments-page__toolbar > .button { flex: 0 0 auto; }
-.payments-page__pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
-.payments-page__pagination[hidden] { display: none; }
 .payment-dialog {
   margin: auto;
   width: min(36rem, calc(100% - 2rem));

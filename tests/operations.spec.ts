@@ -5,12 +5,11 @@ const users = [
   { _id: 'reception', fullName: 'Luis Recepción', dni: '23456789', phone: '3517654321', email: 'luis@example.test', role: 'RECEPTIONIST', accountStatus: 'ACTIVE' },
 ]
 async function mockApi(page: Page, role = 'OWNER') {
-  await page.addInitScript(() => localStorage.setItem('forgefit_access_token', 'test-session'))
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname.replace('/api', '')
     const data: Record<string, unknown> = {
-      '/auth/me': { user: { id: 'owner', fullName: 'Ana Propietaria', role } },
-      '/users': users,
+      '/auth/me': { sessionId: 'session-test', user: { id: 'owner', fullName: 'Ana Propietaria', role } },
+      '/users': { items: users, page: 1, limit: 20, total: users.length },
       '/roles': [{ code: 'OWNER', permissions: ['users:write'] }, { code: 'ADMIN', permissions: ['users:read'] }, { code: 'RECEPTIONIST', permissions: [] }],
       '/reports/members': { total: 40, active: 30, inactive: 10, registrations: 7 },
       '/reports/payments': { currency: 'ARS', paid: { count: 4, amount: 40000 }, pending: { count: 2, amount: 20000 }, overdue: { count: 1, amount: 10000 } },
@@ -36,9 +35,11 @@ for (const existing of [false, true]) {
     let saved: Record<string, unknown> | undefined
     const member = { id: 'member-1', name: 'Socio Demo', dni: '12345678' }
     await page.route('**/api/members', route => route.fulfill({ json: { data: [member] } }))
-    await page.route('**/api/members/member-1/payments', route => route.fulfill({ json: {
-      data: existing ? [{ id: 'payment-1', period: '2026-11', status: 'PENDING' }] : [],
-    } }))
+    await page.route(/\/api\/members\/member-1\/payments\?/, route => {
+      expect(new URL(route.request().url()).searchParams.get('period')).toBe('2026-11')
+      const items = existing ? [{ id: 'payment-1', period: '2026-11', status: 'PENDING' }] : []
+      return route.fulfill({ json: { data: { items, page: 1, limit: 100, total: items.length } } })
+    })
     await page.route(/\/api\/payments(?:\/payment-1)?(?:\?.*)?$/, async route => {
       if (route.request().method() === 'GET') {
         const items = saved ? [{ ...saved, id: 'payment-1', memberId: member }] : []
@@ -113,9 +114,11 @@ test('public landing is available on mobile and dashboard requires sign-in', asy
   await expect(page.getByText('Sí. Iniciá sesión con tu cuenta', { exact: false })).toBeVisible()
   await page.getByRole('main').getByRole('link', { name: 'Iniciar sesión' }).last().click()
   await expect(page).toHaveURL(/\/auth\/login$/)
+  await page.route('**/api/auth/**', route => route.fulfill({ status: 401, json: { error: { code: 'SESSION_EXPIRED' } } }))
   await page.goto('/dashboard')
   await expect(page).toHaveURL(/\/auth\/login$/)
 
+  await page.unroute('**/api/auth/**')
   await mockApi(page)
   await page.goto('/dashboard')
   await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
@@ -272,6 +275,10 @@ test('owner creates a user and edits account status without sending password', a
   await mockApi(page)
   let created: Record<string, string> = {}
   let updated: Record<string, string> = {}
+  await page.route(/\/api\/users\?/, route => {
+    const items = created.fullName ? [...users, { ...created, ...updated, _id: 'new-user', accountStatus: updated.accountStatus ?? 'ACTIVE' }] : users
+    return route.fulfill({ json: { data: { items, page: 1, limit: 20, total: items.length } } })
+  })
   await page.route('**/api/users', async route => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { data: users } })
     created = route.request().postDataJSON()
@@ -385,7 +392,7 @@ test('report errors are independent and empty attendance is explicit', async ({ 
   await expect(page.getByText('No hay ingresos autorizados en el rango consultado.')).toBeVisible()
 })
 
-test('protected navigation reuses the verified session', async ({ page }) => {
+test('protected navigation reuses the verified cookie session', async ({ page }) => {
   await mockApi(page)
   const sessionRequests: string[] = []
   page.on('request', request => {
@@ -398,12 +405,12 @@ test('protected navigation reuses the verified session', async ({ page }) => {
   expect(initialRequests).toBeGreaterThan(0)
   await reports.click()
   await expect(page.getByRole('heading', { name: 'Reportes administrativos' })).toBeVisible()
-  expect(sessionRequests).toHaveLength(initialRequests)
+  expect(sessionRequests.length).toBe(initialRequests)
 })
 
 test('expired session redirects to login', async ({ page }) => {
   await mockApi(page)
-  await page.route('**/api/auth/me', route => route.fulfill({ status: 401, json: { error: { code: 'UNAUTHORIZED' } } }))
+  await page.route('**/api/auth/**', route => route.fulfill({ status: 401, json: { error: { code: 'SESSION_EXPIRED' } } }))
   await page.goto('/reports')
   await expect(page).toHaveURL(/\/auth\/login$/)
 })
@@ -417,4 +424,61 @@ test('mobile pages keep the document within viewport', async ({ page }) => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
     await page.screenshot({ path: `test-results/mobile-${path.slice(1)}.png`, fullPage: true })
   }
+})
+
+test('renewal restores a private page with an expired access cookie', async ({ page }) => {
+  await mockApi(page)
+  let renewed = false
+  let refreshCount = 0
+  await page.route('**/api/auth/me', route => route.fulfill(renewed
+    ? { json: { data: { sessionId: 'session-test', user: { id: 'owner', fullName: 'Ana Propietaria', role: 'OWNER' } } } }
+    : { status: 401, json: { error: { code: 'UNAUTHORIZED' } } }))
+  await page.route('**/api/auth/refresh', route => {
+    expect(route.request().method()).toBe('POST')
+    expect(route.request().headers().authorization).toBeUndefined()
+    refreshCount++
+    renewed = true
+    return route.fulfill({ status: 204 })
+  })
+  await page.goto('/dashboard')
+  await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible()
+  expect(refreshCount).toBe(1)
+  expect(await page.evaluate(() => localStorage.getItem('forgefit_access_token'))).toBeNull()
+})
+
+test('concurrent protected requests share one refresh and retry with the same session', async ({ page }) => {
+  await mockApi(page)
+  let renewed = false
+  let refreshCount = 0
+  const attempts = new Map<string, number>()
+  await page.route('**/api/auth/me', route => {
+    if (route.request().headers()['x-session-id'] && !renewed) {
+      return route.fulfill({ status: 401, json: { error: { code: 'UNAUTHORIZED' } } })
+    }
+    return route.fulfill({ json: { data: { sessionId: 'session-test', user: { id: 'owner', fullName: 'Ana Propietaria', role: 'OWNER' } } } })
+  })
+  await page.route('**/api/auth/refresh', route => {
+    refreshCount++
+    expect(route.request().headers()['x-session-id']).toBe('session-test')
+    renewed = true
+    return route.fulfill({ status: 204 })
+  })
+  for (const [name, data] of Object.entries({
+    members: { total: 40, active: 30, inactive: 10, registrations: 7 },
+    payments: { currency: 'ARS', paid: { count: 4, amount: 40000 }, pending: { count: 1, amount: 10000 }, overdue: { count: 0, amount: 0 } },
+    attendance: { totalEntries: 3, uniqueMembers: 2, entriesByDay: [] },
+  })) {
+    await page.route('**/api/reports/' + name + '?*', route => {
+      expect(route.request().headers()['x-session-id']).toBe('session-test')
+      const attempt = (attempts.get(name) ?? 0) + 1
+      attempts.set(name, attempt)
+      return route.fulfill(!renewed
+        ? { status: 401, json: { error: { code: 'UNAUTHORIZED' } } }
+        : { json: { data } })
+    })
+  }
+  await page.goto('/reports')
+  await expect(page.getByRole('region', { name: 'Socios', exact: true }).getByText('40', { exact: true })).toBeVisible()
+  await expect.poll(() => attempts.size).toBe(3)
+  expect(refreshCount).toBe(1)
 })

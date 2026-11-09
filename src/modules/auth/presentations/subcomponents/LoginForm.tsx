@@ -10,6 +10,7 @@ import {
 } from "../../../../shared/components/Text/index.ts";
 import { PasswordVisibilityIcon } from "./PasswordVisibilityIcon.tsx";
 import { login } from '../../services/auth.ts'
+import { verifySession, type Session } from '../../session.ts'
 import { useErrorToast } from '../../../../shared/hooks/useErrorToast.ts'
 
 function MailIcon() {
@@ -21,7 +22,7 @@ function MailIcon() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ onAuthenticated }: { onAuthenticated: (session: Session) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -36,7 +37,12 @@ export function LoginForm() {
     if (!canLogin) return;
 
     setIsLoading(true); setError(null)
-    try { await login(email, password); window.location.assign('/members') } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'No pudimos iniciar sesión.') } finally { setIsLoading(false) }
+    try {
+      await login(email, password);
+      onAuthenticated(await verifySession());
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'No pudimos iniciar sesión.');
+    } finally { setIsLoading(false) }
   }
 
   return (

@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useSession } from "../../../auth/session.ts";
 import { MemberQr } from "./MemberQr.tsx";
-import { Button } from "../../../../shared/components/Button/index.ts";
 import { Input, InputType } from "../../../../shared/components/Input/index.ts";
 import {
-  Table,
   type TableColumn,
 } from "../../../../shared/components/Table/index.ts";
 import {
@@ -19,8 +17,10 @@ import {
   type Payment,
 } from "../../../payments/models/Payment.ts";
 import { useGetMember } from "./hooks/useGetMember.ts";
-import { useGetMemberPayments } from "./hooks/useGetMemberPayments.ts";
-import { useGetMemberAttendances } from "../../../attendance/presentations/hooks/useGetMemberAttendances.ts";
+import { PagedTable } from "../../../../shared/components/Table/PagedTable.tsx";
+import { usePagedList } from "../../../../shared/hooks/usePagedList.ts";
+import { useGetAttendances } from "../../../attendance/presentations/hooks/useGetAttendances.ts";
+import "../../../../shared/styles/operations.css";
 import {
   AttendanceStatus,
   type Attendance,
@@ -231,27 +231,12 @@ export function MemberDetailPage() {
   const memberId =
     window.location.pathname.split("/").filter(Boolean).at(-1) ?? "";
   const { member, isLoading, error } = useGetMember(memberId);
-  const {
-    payments,
-    isLoading: isLoadingPayments,
-    error: paymentsError,
-  } = useGetMemberPayments(memberId);
-  const {
-    attendances,
-    isLoading: isLoadingAttendances,
-    error: attendancesError,
-  } = useGetMemberAttendances(memberId);
+  const path = member ? `/members/${encodeURIComponent(memberId)}` : null;
+  const payments = usePagedList<Payment>(path && `${path}/payments`);
+  const attendances = useGetAttendances(path && `${path}/attendance`);
   const [activeTab, setActiveTab] = useState<
     "information" | "payments" | "attendance"
   >("information");
-  const recentAttendances = [...attendances]
-    .sort((left, right) =>
-      `${right.entryDate} ${right.entryTime}`.localeCompare(
-        `${left.entryDate} ${left.entryTime}`,
-      ),
-    )
-    .slice(0, 5);
-  const goBack = () => window.location.assign("/members");
 
   return (
     <main className="member-detail-page">
@@ -268,11 +253,11 @@ export function MemberDetailPage() {
                 ? "Socio no encontrado."
                 : "No pudimos obtener la información del socio."}
             </Text>
-            <Button type="button" onClick={goBack}>
+            <a className="button" href="/members">
               <Text as="span" weight={TextWeight.Bold}>
                 Volver a socios
               </Text>
-            </Button>
+            </a>
           </section>
         )}
         {member && (
@@ -329,22 +314,8 @@ export function MemberDetailPage() {
                 <Text as="h2" size={TextSize.Large} weight={TextWeight.Bold}>
                   Historial de pagos
                 </Text>
-                {isLoadingPayments && (
-                  <Text color={TextColor.Secondary}>Cargando pagos...</Text>
-                )}
-                {paymentsError && (
-                  <Text color={TextColor.Danger}>
-                    No pudimos obtener los pagos del socio.
-                  </Text>
-                )}
-                {!isLoadingPayments && !paymentsError && (
-                  <Table
-                    columns={paymentColumns}
-                    data={payments}
-                    getRowId={(payment) => payment.id}
-                    minWidth={800}
-                  />
-                )}
+                <PagedTable list={payments} label="Pagos" empty="Este socio todavía no registra pagos."
+                  columns={paymentColumns} getRowId={payment => payment.id} minWidth={800} />
               </section>
             )}
             {activeTab === "attendance" && (
@@ -357,44 +328,18 @@ export function MemberDetailPage() {
                     Últimos ingresos registrados del socio.
                   </Text>
                 </div>
-                {isLoadingAttendances && (
-                  <Text color={TextColor.Secondary}>
-                    Cargando asistencias...
-                  </Text>
-                )}
-                {attendancesError && (
-                  <Text color={TextColor.Danger}>
-                    No pudimos obtener las asistencias.
-                  </Text>
-                )}
-                {!isLoadingAttendances &&
-                  !attendancesError &&
-                  (recentAttendances.length ? (
-                    <Table
-                      columns={attendanceColumns}
-                      data={recentAttendances}
-                      getRowId={(attendance) => attendance.id}
-                      minWidth={610}
-                    />
-                  ) : (
-                    <Text color={TextColor.Secondary}>
-                      Este socio todavía no registra asistencias.
-                    </Text>
-                  ))}
+                <PagedTable list={attendances} label="Asistencias" empty="Este socio todavía no registra asistencias."
+                  columns={attendanceColumns} getRowId={attendance => attendance.id} minWidth={610} />
               </section>
             )}
           </>
         )}
         {member && (
-          <Button
-            className="member-detail-page__back"
-            type="button"
-            onClick={goBack}
-          >
+          <a className="button member-detail-page__back" href="/members">
             <Text as="span" weight={TextWeight.Bold}>
               Volver a socios
             </Text>
-          </Button>
+          </a>
         )}
       </div>
     </main>

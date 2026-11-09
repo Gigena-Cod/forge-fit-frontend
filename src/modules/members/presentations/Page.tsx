@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
-  Table,
   type TableColumn,
 } from "../../../shared/components/Table/index.ts";
 import { Input, InputType } from "../../../shared/components/Input/index.ts";
@@ -11,13 +10,14 @@ import {
   TextWeight,
 } from "../../../shared/components/Text/index.ts";
 import { MembershipStatus, type Member } from "../types/member.ts";
-import { useGetMembers } from "./hooks/useGetMembers.ts";
+import { usePagedList } from "../../../shared/hooks/usePagedList.ts";
+import { PagedTable } from "../../../shared/components/Table/PagedTable.tsx";
+import "../../../shared/styles/operations.css";
 import { MemberRowActions } from "./subcomponents/MemberRowActions/MemberRowActions.tsx";
 import { CreateMemberPopup } from "./subcomponents/CreateMemberPopup/CreateMemberPopup.tsx";
 import { UpdateMemberPopup } from "./subcomponents/UpdateMemberPopup/UpdateMemberPopup.tsx";
 import { DeleteMemberPopup } from "./subcomponents/DeleteMemberPopup/DeleteMemberPopup.tsx";
 import "./Page.css";
-import { useErrorToast } from '../../../shared/hooks/useErrorToast.ts'
 
 function formatDate(value: string | null) {
   if (!value) return "Sin registros";
@@ -100,23 +100,11 @@ const columns: TableColumn<Member>[] = [
 ];
 
 export function MembersPage() {
-  const { members, isLoading, error, addMember, replaceMember, removeMember } =
-    useGetMembers();
   const [query, setQuery] = useState("");
+  const list = usePagedList<Member>("/members", query.trim());
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [memberToUpdate, setMemberToUpdate] = useState<Member | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
-  useErrorToast(error)
-  const filteredMembers = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
-    if (!normalizedQuery) return members;
-
-    return members.filter((member) =>
-      [member.name, member.dni, member.email].some((value) =>
-        value.toLocaleLowerCase().includes(normalizedQuery),
-      ),
-    );
-  }, [members, query]);
 
   return (
     <main className="members-page">
@@ -140,13 +128,11 @@ export function MembersPage() {
           </button>
         </div>
 
-        {isLoading && (
-          <Text color={TextColor.Secondary}>Cargando socios...</Text>
-        )}
-        {!isLoading && !error && (
-          <Table
+          <PagedTable
             columns={columns}
-            data={filteredMembers}
+            list={list}
+            label="Socios"
+            empty={query.trim() ? "No hay socios que coincidan con la búsqueda." : "No hay socios registrados."}
             getRowId={(member) => member.id}
             minWidth={1150}
             renderExpandedRow={(member) => (
@@ -157,26 +143,25 @@ export function MembersPage() {
               />
             )}
           />
-        )}
       </section>
       <CreateMemberPopup
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        onCreated={addMember}
+        onCreated={list.reload}
       />
       <UpdateMemberPopup
-        key={memberToUpdate?.id ?? "none"}
+        key={`update-${memberToUpdate?.id ?? "none"}`}
         isOpen={Boolean(memberToUpdate)}
         member={memberToUpdate}
         onClose={() => setMemberToUpdate(null)}
-        onUpdated={replaceMember}
+        onUpdated={list.reload}
       />
       <DeleteMemberPopup
-        key={memberToDelete?.id ?? "none"}
+        key={`delete-${memberToDelete?.id ?? "none"}`}
         isOpen={Boolean(memberToDelete)}
         member={memberToDelete}
         onClose={() => setMemberToDelete(null)}
-        onDeleted={removeMember}
+        onDeleted={list.reload}
       />
     </main>
   );

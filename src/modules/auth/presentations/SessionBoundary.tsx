@@ -1,42 +1,34 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { apiRequest, ApiError, cacheSession, clearAccessToken, getAccessToken, readCachedSession } from '../../../shared/services/api.ts'
-import { SessionContext, type Session } from '../session.ts'
+import { observeSessionChanges } from '../../../shared/services/api.ts'
+import { SessionContext, verifySession, type Session } from '../session.ts'
 import '../../../shared/styles/operations.css'
 
-function isExpired(token: string) {
-  try {
-    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-    const { exp } = JSON.parse(atob(payload)) as { exp?: number }
-    return typeof exp === 'number' && Date.now() >= exp * 1000
-  } catch {
-    return false
-  }
-}
-
-export function SessionBoundary({ children }: { children: ReactNode }) {
-  const [token] = useState(getAccessToken)
-  const [session, setSession] = useState(() => token && !isExpired(token) ? readCachedSession<Session>(token) : null)
+export function SessionBoundary({ children, initialSession }: { children: ReactNode; initialSession: Session | null }) {
+  const [session, setSession] = useState(initialSession)
   const [error, setError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+
   useEffect(() => {
-    if (!token || isExpired(token)) {
-      if (token === getAccessToken()) clearAccessToken()
-      window.location.replace('/auth/login')
-      return
-    }
-    if (session) return
     const controller = new AbortController()
-    apiRequest<Session>('/auth/me', { signal: controller.signal }).then(result => {
-      if (controller.signal.aborted || token !== getAccessToken()) return
-      cacheSession(token, result)
-      setSession(result)
-    }).catch((cause: unknown) => {
-      if (controller.signal.aborted || token !== getAccessToken()) return
-      if (cause instanceof ApiError && cause.status === 401) { clearAccessToken(); window.location.replace('/auth/login') }
-      else setError(true)
+    const stopObserving = observeSessionChanges(() => {
+      controller.abort()
+      window.location.replace('/auth/login')
     })
-    return () => controller.abort()
-  }, [attempt, session, token])
-  if (!session) return <main className="session-feedback" aria-live="polite">{error ? <><p>No pudimos verificar tu sesión.</p><button onClick={() => { setError(false); setAttempt(attempt + 1) }}>Reintentar</button></> : <p>Verificando sesión…</p>}</main>
+    if (!initialSession) void verifySession(controller.signal).then(result => {
+      if (!controller.signal.aborted) setSession(result)
+    }).catch(() => {
+      if (!controller.signal.aborted) setError(true)
+    })
+    return () => {
+      controller.abort()
+      stopObserving()
+    }
+  }, [attempt, initialSession])
+
+  if (!session) return <main className="session-feedback" aria-busy={!error}>
+    <h1>ForgeFit</h1>
+    {error ? <><p role="alert">No pudimos abrir el panel.</p><button onClick={() => { setError(false); setAttempt(attempt + 1) }}>Reintentar</button></>
+      : <div className="session-placeholder" aria-hidden="true"><span /><span /><span /></div>}
+  </main>
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>
 }

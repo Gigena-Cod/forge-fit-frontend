@@ -1,26 +1,26 @@
-import { useEffect, useState } from "react";
-import { getAttendances } from "../../services/getAttendances.ts";
-import type { Attendance } from "../../models/Attendance.ts";
+import { usePagedList } from '../../../../shared/hooks/usePagedList.ts'
+import type { Attendance } from '../../models/Attendance.ts'
 
-export function useGetAttendances() {
-  const [attendances, setAttendances] = useState<Attendance[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let isMounted = true;
-    getAttendances()
-      .then((result) => {
-        if (isMounted) setAttendances(result);
-      })
-      .catch(() => {
-        if (isMounted) setError("No pudimos obtener las asistencias.");
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-  return { attendances, isLoading, error };
+type ApiAttendance = {
+  id?: string
+  _id?: string
+  memberId: string | { id?: string; _id?: string; name?: string } | null
+  entryAt: string
+  status: Attendance['status']
+}
+
+function mapAttendance({ id, _id, memberId, entryAt, status }: ApiAttendance): Attendance {
+  return {
+    id: id ?? _id ?? '',
+    memberId: typeof memberId === 'string' ? memberId : memberId?.id ?? memberId?._id ?? '',
+    memberName: typeof memberId === 'string' ? 'Socio' : memberId?.name ?? 'Socio',
+    entryDate: entryAt.slice(0, 10),
+    entryTime: new Date(entryAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    status,
+  }
+}
+
+export function useGetAttendances(path: string | null, query = '') {
+  const list = usePagedList<ApiAttendance>(path, query)
+  return { ...list, data: list.data && { ...list.data, items: list.data.items.map(mapAttendance) } }
 }
