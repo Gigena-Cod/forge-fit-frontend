@@ -1,0 +1,9 @@
+.table-pagination, .table-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.table-pagination { justify-content: space-between; }
+.table-pagination p { margin: 0; }
+.table-pagination button:disabled { opacity: .55; cursor: default; }

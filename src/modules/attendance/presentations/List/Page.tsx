@@ -1,7 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Input, InputType } from "../../../../shared/components/Input/index.ts";
 import {
-  Table,
   type TableColumn,
 } from "../../../../shared/components/Table/index.ts";
 import {
@@ -12,7 +11,8 @@ import {
 import { AttendanceStatus, type Attendance } from "../../models/Attendance.ts";
 import { useGetAttendances } from "../hooks/useGetAttendances.ts";
 import "./Page.css";
-import { useErrorToast } from '../../../../shared/hooks/useErrorToast.ts'
+import { PagedTable } from '../../../../shared/components/Table/PagedTable.tsx'
+import '../../../../shared/styles/operations.css'
 
 const labels = {
   [AttendanceStatus.Allowed]: "Ingreso permitido",
@@ -65,19 +65,8 @@ const columns: TableColumn<Attendance>[] = [
 ];
 
 export function AttendancePage() {
-  const { attendances, isLoading, error } = useGetAttendances();
   const [query, setQuery] = useState("");
-  useErrorToast(error)
-  const filteredAttendances = useMemo(() => {
-    const value = query.trim().toLocaleLowerCase();
-    return value
-      ? attendances.filter((item) =>
-          [item.memberName, item.entryDate, labels[item.status]].some((field) =>
-            field.toLocaleLowerCase().includes(value),
-          ),
-        )
-      : attendances;
-  }, [attendances, query]);
+  const list = useGetAttendances("/attendance", query.trim());
   return (
     <main className="attendance-page">
       <section className="attendance-page__content">
@@ -89,23 +78,9 @@ export function AttendancePage() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        {isLoading && (
-          <Text color={TextColor.Secondary}>Cargando asistencias...</Text>
-        )}
-        {!isLoading &&
-          !error &&
-          (filteredAttendances.length ? (
-            <Table
-              columns={columns}
-              data={filteredAttendances}
-              getRowId={(item) => item.id}
-              minWidth={840}
-            />
-          ) : (
-            <Text color={TextColor.Secondary}>
-              No hay asistencias registradas.
-            </Text>
-          ))}
+        <PagedTable list={list} label="Asistencias"
+          empty={query.trim() ? "No hay asistencias que coincidan con la búsqueda." : "No hay asistencias registradas."}
+          columns={columns} getRowId={item => item.id} minWidth={840} />
       </section>
     </main>
   );

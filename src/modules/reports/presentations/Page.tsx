@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { apiRequest } from '../../../shared/services/api.ts'
+import { TablePagination } from '../../../shared/components/Table/TablePagination.tsx'
+import { PAGE_SIZE } from '../../../shared/hooks/usePagedList.ts'
 import { Button } from '../../../shared/components/Button/index.ts'
 import { Table } from '../../../shared/components/Table/index.ts'
 import '../../../shared/styles/operations.css'
@@ -63,6 +65,20 @@ function ReportSection<T>({ title, endpoint, periods = false, children }: { titl
   </section>
 }
 
+function AttendanceDays({ entries }: { entries: AttendanceReport['entriesByDay'] }) {
+  const [page, setPage] = useState(1)
+  const offset = (page - 1) * PAGE_SIZE
+  const items = entries.slice(offset, offset + PAGE_SIZE)
+  if (!items.length) return <p>No hay ingresos autorizados en el rango consultado.</p>
+  return <>
+    <Table data={items} getRowId={item => item.date} minWidth={300} columns={[
+      { id: 'date', header: 'Fecha', render: item => new Intl.DateTimeFormat('es-AR').format(new Date(`${item.date}T12:00:00`)) },
+      { id: 'entries', header: 'Ingresos', render: item => item.entries },
+    ]} />
+    <TablePagination page={page} limit={PAGE_SIZE} total={entries.length} count={items.length} label="Días" onPage={setPage} />
+  </>
+}
+
 export function ReportsPage() {
   return <main className="operations-page"><div className="operations-content">
     <div className="operations-intro"><h1>Reportes administrativos</h1><p className="operations-muted">Socios, cuotas e ingresos del gimnasio. Cada reporte tiene su propio rango de consulta.</p></div>
@@ -76,10 +92,7 @@ export function ReportsPage() {
     </>}</ReportSection>
     <ReportSection<AttendanceReport> title="Asistencias" endpoint="attendance">{data => <>
       <div className="operations-metrics"><Metric label="Ingresos autorizados" value={data.totalEntries} /><Metric label="Socios que ingresaron" value={data.uniqueMembers} /></div>
-      {data.entriesByDay.length ? <Table data={data.entriesByDay} getRowId={item => item.date} minWidth={300} columns={[
-        { id: 'date', header: 'Fecha', render: item => new Intl.DateTimeFormat('es-AR').format(new Date(`${item.date}T12:00:00`)) },
-        { id: 'entries', header: 'Ingresos', render: item => item.entries },
-      ]} /> : <p>No hay ingresos autorizados en el rango consultado.</p>}
+      <AttendanceDays entries={data.entriesByDay} />
     </>}</ReportSection>
   </div></main>
 }

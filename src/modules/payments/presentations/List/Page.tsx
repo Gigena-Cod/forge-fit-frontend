@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RegisterPayment } from "./RegisterPayment.tsx";
 import "../../../../shared/styles/operations.css";
+import { TablePagination } from "../../../../shared/components/Table/TablePagination.tsx";
 import { Input, InputType } from "../../../../shared/components/Input/index.ts";
 import {
   Table,
@@ -115,7 +116,6 @@ export function PaymentsPage() {
   const [saved, setSaved] = useState(false);
   const [query, setQuery] = useState("");
   const { data, isLoading, error } = useGetPayments(page, query.trim(), revision);
-  const offset = data ? (data.page - 1) * data.limit : 0;
   return (
     <main className="payments-page">
       <section className="payments-page__content operations-content">
@@ -158,13 +158,8 @@ export function PaymentsPage() {
           ) : (
             <Text color={TextColor.Secondary}>{page > 1 ? "Esta página ya no tiene pagos." : query.trim() ? "No hay pagos que coincidan con la búsqueda." : "No hay pagos registrados."}</Text>
           ))}
-        <nav className="payments-page__pagination" aria-label="Paginación de pagos" hidden={page === 1 && !data?.total}>
-          <p role="status">{data?.items.length ? `Pagos ${offset + 1}–${offset + data.items.length} de ${data.total}` : `Página ${page}`}</p>
-          <div className="operations-actions">
-            <button type="button" className="operations-secondary" disabled={page === 1 || isLoading} onClick={() => setPage(value => value - 1)}>Anterior</button>
-            <button type="button" className="operations-secondary" disabled={!data || offset + data.limit >= data.total} onClick={() => setPage(value => value + 1)}>Siguiente</button>
-          </div>
-        </nav>
+        {data?.items.length ? <TablePagination {...data} label="Pagos" count={data.items.length} onPage={setPage} />
+          : page > 1 && <button type="button" className="operations-secondary" disabled={isLoading} onClick={() => setPage(value => value - 1)}>Anterior</button>}
       </section>
     </main>
   );

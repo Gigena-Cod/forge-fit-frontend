@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '../../../shared/components/Button/index.ts'
-import { Table, type TableColumn } from '../../../shared/components/Table/index.ts'
-import { ApiError, clearAccessToken } from '../../../shared/services/api.ts'
+import type { TableColumn } from '../../../shared/components/Table/index.ts'
+import { PagedTable } from '../../../shared/components/Table/PagedTable.tsx'
+import { usePagedList } from '../../../shared/hooks/usePagedList.ts'
+import { ApiError } from '../../../shared/services/api.ts'
 import { useSession } from '../../auth/session.ts'
-import { getRoles, getUsers, roleLabels, saveUser, type RoleDefinition, type User } from '../services/users.ts'
+import { getRoles, roleLabels, saveUser, type RoleDefinition, type User } from '../services/users.ts'
 import '../../../shared/styles/operations.css'
 
 function errorMessage(cause: unknown) {
@@ -35,7 +37,7 @@ function UserEditor({ user, roles, onClose, onSaved }: { user: User | null; role
     locked.current = true; setBusy(true); setError('')
     try {
       const saved = await saveUser(user?._id, body)
-      if (user?._id === session.user.id) { clearAccessToken(); window.location.assign('/auth/login'); return }
+      if (user?._id === session.user.id) { window.location.replace('/auth/login'); return }
       onSaved(saved)
     } catch (cause) { setError(errorMessage(cause)) }
     finally { locked.current = false; setBusy(false) }
@@ -63,23 +65,22 @@ function UserEditor({ user, roles, onClose, onSaved }: { user: User | null; role
 
 export function UsersPage() {
   const session = useSession()
-  const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<RoleDefinition[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
   const [query, setQuery] = useState('')
+  const list = usePagedList<User>('/users', query.trim())
   const [editor, setEditor] = useState<{ user: User | null } | null>(null)
   const [notice, setNotice] = useState('')
   const canWrite = roles.find(item => item.code === session.user.role)?.permissions.includes('users:write') ?? false
   useEffect(() => {
     const controller = new AbortController()
-    Promise.all([getUsers(controller.signal), getRoles(controller.signal)]).then(([list, catalog]) => { setUsers(list); setRoles(catalog) }).catch(cause => {
+    getRoles(controller.signal).then(catalog => { if (!controller.signal.aborted) setRoles(catalog) }).catch(cause => {
       if (!controller.signal.aborted) setError(errorMessage(cause))
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [attempt])
-  const filtered = users.filter(user => [user.fullName, user.email, user.dni, roleLabels[user.role]].some(value => value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())))
   const columns: TableColumn<User>[] = [
     { id: 'name', header: 'Nombre', render: user => user.fullName },
     { id: 'email', header: 'Email', render: user => user.email },
@@ -94,8 +95,8 @@ export function UsersPage() {
     {notice && <p role="status" className="operations-success">{notice}</p>}
     {loading ? <p role="status">Cargando usuarios…</p> : error ? <div className="operations-error" role="alert"><p>{error}</p><button className="operations-secondary" onClick={() => { setError(''); setLoading(true); setAttempt(attempt + 1) }}>Reintentar</button></div> : <>
       <div className="operations-toolbar"><label>Buscar usuario<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Nombre, email, DNI o rol" /></label>{canWrite && <Button disabled={!!editor} onClick={() => { setNotice(''); setEditor({ user: null }) }}>Nuevo usuario</Button>}</div>
-      {editor && <UserEditor key={editor.user?._id ?? 'new'} user={editor.user} roles={roles} onClose={() => setEditor(null)} onSaved={saved => { setUsers(current => [...current.filter(user => user._id !== saved._id), saved].sort((a, b) => a.fullName.localeCompare(b.fullName))); setEditor(null); setNotice('Usuario guardado correctamente.') }} />}
-      {filtered.length ? <Table columns={columns} data={filtered} getRowId={user => user._id} minWidth={900} /> : <p>{users.length ? 'No hay usuarios que coincidan con la búsqueda.' : 'No hay usuarios registrados.'}</p>}
+      {editor && <UserEditor key={editor.user?._id ?? 'new'} user={editor.user} roles={roles} onClose={() => setEditor(null)} onSaved={() => { list.reload(); setEditor(null); setNotice('Usuario guardado correctamente.') }} />}
+      <PagedTable columns={columns} list={list} label="Usuarios" empty={query.trim() ? 'No hay usuarios que coincidan con la búsqueda.' : 'No hay usuarios registrados.'} getRowId={user => user._id} minWidth={900} />
     </>}
   </div></main>
 }

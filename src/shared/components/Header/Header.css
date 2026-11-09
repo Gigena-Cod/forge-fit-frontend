@@ -33,6 +33,9 @@
   width: 2.25rem;
   height: 2.25rem;
   margin-left: 0.35rem;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
   place-items: center;
   color: var(--ff-color-on-primary);
   border-radius: 50%;
@@ -42,10 +45,38 @@
   font-weight: 800;
 }
 
+.header__account {
+  inset: 3.75rem 1.5rem auto auto;
+  width: min(16rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: .5rem;
+  border: 1px solid var(--ff-color-outline-variant);
+  border-radius: .75rem;
+  color: var(--ff-color-on-surface);
+  background: var(--ff-color-surface);
+  box-shadow: 0 .5rem 1.5rem #0002;
+}
+.header__account-name { margin: 0; padding: .65rem .75rem; font-weight: 700; overflow-wrap: anywhere; }
+.header__account a, .header__account button {
+  display: block;
+  width: 100%;
+  padding: .65rem .75rem;
+  border: 0;
+  border-radius: .5rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.header__account a:hover, .header__account button:hover { background: var(--ff-color-surface-container-low); }
+
 @media (max-width: 640px) {
   .header {
     padding-inline: 1rem;
   }
+  .header__account { right: 1rem; }
 
   .header__action:nth-child(2),
   .header__action:nth-child(3) {

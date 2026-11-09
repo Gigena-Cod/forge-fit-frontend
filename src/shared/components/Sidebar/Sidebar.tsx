@@ -75,8 +75,7 @@ const navigationItems: NavigationItem[] = [
 ];
 
 /** Navegación colapsada: su expansión se agregará en una iteración posterior. */
-export function Sidebar() {
-  const pathname = window.location.pathname.replace(/\/+$/, "");
+export function Sidebar({ pathname }: { pathname: string }) {
   const { user } = useSession();
 
   return (

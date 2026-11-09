@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "API_URL");
   return {
     define: {
-      "import.meta.env.API_URL": JSON.stringify(env.API_URL ?? "http://localhost:3000/api"),
+      "import.meta.env.API_URL": JSON.stringify(mode === "vercel" ? "/api" : env.API_URL ?? "http://localhost:3000/api"),
     },
     plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   };

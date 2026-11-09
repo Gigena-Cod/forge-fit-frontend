@@ -51,7 +51,7 @@ export function RegisterPayment({ onSaved, onCancel }: { onSaved: () => void; on
     setBusy(true);
     setError("");
     try {
-      const matches = (await getMemberPayments(memberId)).filter((payment) => payment.period === period);
+      const matches = (await getMemberPayments(memberId, period)).filter((payment) => payment.period === period);
       if (matches.length > 1) {
         setError("Hay varios registros para ese socio y período. Revisá el historial antes de cobrar.");
         return;
