@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useSession } from "../../../auth/session.ts";
+import { MemberQr } from "./MemberQr.tsx";
 import { Button } from "../../../../shared/components/Button/index.ts";
 import { Input, InputType } from "../../../../shared/components/Input/index.ts";
 import {
@@ -225,6 +227,7 @@ function MemberDetailFields({ member }: { member: Member }) {
 }
 
 export function MemberDetailPage() {
+  const { user } = useSession();
   const memberId =
     window.location.pathname.split("/").filter(Boolean).at(-1) ?? "";
   const { member, isLoading, error } = useGetMember(memberId);
@@ -315,6 +318,11 @@ export function MemberDetailPage() {
             </div>
             {activeTab === "information" && (
               <MemberDetailFields member={member} />
+            )}
+            {user.role !== "RECEPTIONIST" && (
+              <div hidden={activeTab !== "information"}>
+                <MemberQr key={memberId} memberId={memberId} />
+              </div>
             )}
             {activeTab === "payments" && (
               <section className="member-detail-page__payments" role="tabpanel">

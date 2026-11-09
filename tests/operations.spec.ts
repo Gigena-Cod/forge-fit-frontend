@@ -21,6 +21,59 @@ async function mockApi(page: Page, role = 'OWNER') {
   })
 }
 
+async function openMemberFixture(page: Page, role?: string) {
+  await mockApi(page, role)
+  await page.route(/\/api\/members\/member-1$/, route => route.fulfill({ json: { data: {
+    id: 'member-1', name: 'Socio Demo', dni: '12345678', phone: '3515550000',
+    email: 'socio@example.test', registrationDate: '2026-09-01', membershipStatus: 'ACTIVE',
+  } } }))
+  await page.route(/\/api\/members\/member-1\/(payments|attendance)$/, route => route.fulfill({ json: { data: [] } }))
+}
+
+test('owner generates, reloads and renews a member QR', async ({ page }) => {
+  await openMemberFixture(page)
+  const writes: unknown[] = []
+  let credential: { qrPayload: string; issuedAt: string } | undefined
+  await page.route('**/api/members/member-1/qr', async route => {
+    if (route.request().method() === 'POST') {
+      writes.push(route.request().postDataJSON())
+      credential = { qrPayload: `ffq_v1_demo_credential_${writes.length}`, issuedAt: '2026-09-01T12:00:00Z' }
+      if (writes.length === 2) return route.abort()
+    }
+    if (!credential) return route.fulfill({ status: 404, json: { error: { code: 'QR_NOT_ASSIGNED' } } })
+    await route.fulfill({ json: { data: credential } })
+  })
+  await page.goto('/members/member-1')
+  await page.getByRole('button', { name: 'Generar QR' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Credencial generada.' })).toBeVisible()
+  const qr = page.getByRole('img', { name: 'Código QR de ingreso del socio' })
+  await expect(qr).toHaveAttribute('src', /^data:image\/png;base64,/)
+  const firstImage = await qr.getAttribute('src')
+  await page.reload()
+  await expect(qr).toHaveAttribute('src', firstImage!)
+  page.once('dialog', dialog => dialog.dismiss())
+  await page.getByRole('button', { name: 'Renovar QR' }).click()
+  expect(writes).toEqual([{}])
+  page.once('dialog', dialog => dialog.accept())
+  await page.getByRole('button', { name: 'Renovar QR' }).click()
+  await expect(page.getByText(/No pudimos confirmar el cambio/)).toBeVisible()
+  await expect(qr).toBeVisible()
+  await expect(qr).not.toHaveAttribute('src', firstImage!)
+  expect(writes).toEqual([{}, { rotate: true }])
+})
+
+test('reception does not request or display member QR', async ({ page }) => {
+  await openMemberFixture(page, 'RECEPTIONIST')
+  const requests: string[] = []
+  page.on('request', request => {
+    if (request.url().endsWith('/member-1/qr')) requests.push(request.url())
+  })
+  await page.goto('/members/member-1')
+  await expect(page.getByRole('heading', { name: 'Datos personales' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Credencial QR' })).toHaveCount(0)
+  expect(requests).toEqual([])
+})
+
 test('check-in confirms access and locks further submissions until next entry', async ({ page }) => {
   await mockApi(page)
   const bodies: { qrPayload: string; requestId: string }[] = []
