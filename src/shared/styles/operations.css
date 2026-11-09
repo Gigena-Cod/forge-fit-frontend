@@ -24,7 +24,6 @@
 .operations-metric { display: grid; gap: .5rem; padding: 1.25rem; border-radius: .75rem; background: var(--ff-color-surface-container-low); }
 .operations-metric strong { font-size: 1.7rem; overflow-wrap: anywhere; }
 .operations-content .table-wrapper { flex-shrink: 0; overflow: auto; }
-.operations-camera { width: 100%; max-width: 40rem; max-height: 20rem; border-radius: .75rem; background: #240b0b; }
 .operations-result { display: grid; gap: .75rem; }
 .operations-result h2 { font-size: 1.6rem; }
 .session-feedback { padding: 3rem; }

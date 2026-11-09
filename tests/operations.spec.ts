@@ -97,6 +97,43 @@ test('payments paginate in server order and search from page one', async ({ page
   await expect(page.getByRole('cell', { name: 'Socio antiguo' })).toBeVisible()
 })
 
+test('public landing is available on mobile and dashboard requires sign-in', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 700 })
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Gestioná tu gimnasio desde un solo lugar.' })).toBeVisible()
+  await page.getByRole('link', { name: 'Experiencias', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Pulso Norte' })).toBeVisible()
+  await page.getByRole('button', { name: 'Experiencia siguiente' }).click()
+  await expect(page.getByRole('heading', { name: 'Umbral Fuerza' })).toBeVisible()
+  await page.getByRole('button', { name: 'Experiencia anterior' }).click()
+  await expect(page.getByRole('heading', { name: 'Pulso Norte' })).toBeVisible()
+  await page.getByRole('link', { name: 'Preguntas frecuentes' }).click()
+  await expect(page.getByRole('heading', { name: 'Preguntas frecuentes' })).toBeInViewport()
+  await page.getByText('¿Necesito una cuenta para usar el panel?', { exact: true }).click()
+  await expect(page.getByText('Sí. Iniciá sesión con tu cuenta', { exact: false })).toBeVisible()
+  await page.getByRole('main').getByRole('link', { name: 'Iniciar sesión' }).last().click()
+  await expect(page).toHaveURL(/\/auth\/login$/)
+  await page.goto('/dashboard')
+  await expect(page).toHaveURL(/\/auth\/login$/)
+
+  await mockApi(page)
+  await page.goto('/dashboard')
+  await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
+})
+
+test('experience cards advance automatically and support pausing', async ({ page }) => {
+  await page.clock.install()
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Pulso Norte' })).toBeVisible()
+  await page.clock.runFor(6000)
+  await expect(page.getByRole('heading', { name: 'Umbral Fuerza' })).toBeVisible()
+  await page.getByRole('button', { name: 'Pausar' }).click()
+  await page.mouse.move(0, 0)
+  await page.locator('body').click({ position: { x: 1, y: 1 } })
+  await page.clock.runFor(12000)
+  await expect(page.getByRole('heading', { name: 'Umbral Fuerza' })).toBeVisible()
+})
+
 test('owner generates, reloads and renews a member QR', async ({ page }) => {
   await openMemberFixture(page)
   const writes: unknown[] = []
@@ -199,15 +236,36 @@ for (const [reason, message] of [
   })
 }
 
-test('camera failure leaves keyboard input available', async ({ page }) => {
+test('USB entry shows receipt, validation and the identified member on rejection', async ({ page }) => {
   await mockApi(page)
-  await page.addInitScript(() => {
-    navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('Denied', 'NotAllowedError') }
+  let respond!: () => void
+  const waitForValidation = new Promise<void>(resolve => { respond = resolve })
+  await page.route('**/api/attendance/check-in', async route => {
+    await waitForValidation
+    await route.fulfill({ json: { data: {
+      allowed: false, reason: 'PAYMENT_MISSING', attendance: null, replayed: false,
+      member: { id: 'member-1', name: 'Socio Demo', dni: '12345678', membershipStatus: 'ACTIVE' },
+      payment: { period: '2026-09', status: 'MISSING' },
+    } } })
   })
   await page.goto('/check-in')
-  await page.getByRole('button', { name: 'Usar cámara' }).click()
-  await expect(page.getByText('No pudimos abrir la cámara.', { exact: false })).toBeVisible()
-  await expect(page.getByLabel('Credencial QR')).not.toHaveAttribute('readonly', '')
+  const input = page.getByLabel('Credencial QR')
+  await expect(input).toBeFocused()
+  await expect(page.getByText('Esperando lectura')).toBeVisible()
+  await input.fill('forgefit-qr-example')
+  await expect(page.getByText('Recibiendo código…')).toBeVisible()
+  await input.press('Enter')
+  try {
+    await expect(page.getByText('Validando ingreso…')).toBeVisible()
+  } finally {
+    respond()
+  }
+  await expect(page.getByRole('heading', { name: 'Ingreso rechazado' })).toBeVisible()
+  await expect(page.getByText('Socio Demo')).toBeVisible()
+  await expect(page.getByText('Sin registrar', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Siguiente ingreso' }).click()
+  await expect(input).toBeFocused()
+  await expect(page.getByText('Último código recibido', { exact: false })).toBeVisible()
 })
 
 test('owner creates a user and edits account status without sending password', async ({ page }) => {
@@ -285,9 +343,19 @@ test('receptionist cannot open users/reports or see their navigation', async ({ 
 
 test('reports validate date pairs and send separate date and period filters', async ({ page }) => {
   await mockApi(page)
+  await page.clock.setFixedTime(new Date(2028, 1, 15, 12))
+  const initialRequests = [
+    '**/reports/members?from=2028-02-01&to=2028-02-29',
+    '**/reports/attendance?from=2028-02-01&to=2028-02-29',
+    '**/reports/payments?periodFrom=2028-02&periodTo=2028-02',
+  ].map(url => page.waitForRequest(url))
   await page.goto('/reports')
+  await Promise.all(initialRequests)
   const members = page.getByRole('region', { name: 'Socios', exact: true })
   await expect(members.getByText('40', { exact: true })).toBeVisible()
+  await expect(members.getByLabel('Desde')).toHaveValue('2028-02-01')
+  await expect(members.getByLabel('Hasta')).toHaveValue('2028-02-29')
+  await members.getByLabel('Hasta').fill('')
   await members.getByLabel('Desde').fill('2026-09-01')
   await members.getByRole('button', { name: 'Aplicar' }).click()
   await expect(members.getByRole('alert')).toContainText('ambos extremos')
@@ -309,12 +377,28 @@ test('reports validate date pairs and send separate date and period filters', as
 
 test('report errors are independent and empty attendance is explicit', async ({ page }) => {
   await mockApi(page)
-  await page.route('**/api/reports/payments', route => route.fulfill({ status: 500, json: { error: {} } }))
-  await page.route('**/api/reports/attendance', route => route.fulfill({ json: { data: { totalEntries: 0, uniqueMembers: 0, entriesByDay: [] } } }))
+  await page.route(/\/api\/reports\/payments\?/, route => route.fulfill({ status: 500, json: { error: {} } }))
+  await page.route(/\/api\/reports\/attendance\?/, route => route.fulfill({ json: { data: { totalEntries: 0, uniqueMembers: 0, entriesByDay: [] } } }))
   await page.goto('/reports')
   await expect(page.getByRole('region', { name: 'Pagos', exact: true }).getByRole('alert')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Socios', exact: true }).getByText('40', { exact: true })).toBeVisible()
   await expect(page.getByText('No hay ingresos autorizados en el rango consultado.')).toBeVisible()
+})
+
+test('protected navigation reuses the verified session', async ({ page }) => {
+  await mockApi(page)
+  const sessionRequests: string[] = []
+  page.on('request', request => {
+    if (request.url().endsWith('/auth/me')) sessionRequests.push(request.url())
+  })
+  await page.goto('/dashboard')
+  const reports = page.getByRole('link', { name: 'Reportes', exact: true })
+  await expect(reports).toBeVisible()
+  const initialRequests = sessionRequests.length
+  expect(initialRequests).toBeGreaterThan(0)
+  await reports.click()
+  await expect(page.getByRole('heading', { name: 'Reportes administrativos' })).toBeVisible()
+  expect(sessionRequests).toHaveLength(initialRequests)
 })
 
 test('expired session redirects to login', async ({ page }) => {

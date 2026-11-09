@@ -15,9 +15,17 @@ function Metric({ label, value, detail }: { label: string; value: ReactNode; det
 }
 
 function ReportSection<T>({ title, endpoint, periods = false, children }: { title: string; endpoint: string; periods?: boolean; children: (data: T) => ReactNode }) {
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [request, setRequest] = useState({ query: '', version: 0, label: 'Todo el historial' })
+  const [initialRange] = useState(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth()
+    const period = `${year}-${String(month + 1).padStart(2, '0')}`
+    const lastDay = new Date(year, month + 1, 0).getDate()
+    return periods ? { from: period, to: period } : { from: `${period}-01`, to: `${period}-${lastDay}` }
+  })
+  const [from, setFrom] = useState(initialRange.from)
+  const [to, setTo] = useState(initialRange.to)
+  const [request, setRequest] = useState(() => makeRequest(from, to, 0))
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -29,13 +37,16 @@ function ReportSection<T>({ title, endpoint, periods = false, children }: { titl
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [endpoint, request])
+  function makeRequest(from: string, to: string, version: number) {
+    const params = new URLSearchParams(periods ? { periodFrom: from, periodTo: to } : { from, to })
+    return { query: from ? `?${params}` : '', version, label: from ? `${from} → ${to}` : 'Todo el historial' }
+  }
   function apply(event: FormEvent) {
     event.preventDefault()
     if (Boolean(from) !== Boolean(to)) { setValidation('Completá ambos extremos del rango o dejá los dos vacíos.'); return }
     if (from && from > to) { setValidation('El inicio no puede ser posterior al fin.'); return }
-    const params = new URLSearchParams(periods ? { periodFrom: from, periodTo: to } : { from, to })
     setValidation(''); setError(''); setData(null); setLoading(true)
-    setRequest({ query: from ? `?${params}` : '', version: request.version + 1, label: from ? `${from} → ${to}` : 'Todo el historial' })
+    setRequest(makeRequest(from, to, request.version + 1))
   }
   return <section className="operations-panel" aria-label={title}>
     <h2>{title}</h2>
