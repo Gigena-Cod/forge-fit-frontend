@@ -64,7 +64,7 @@ type NavigationItem = {
 };
 
 const navigationItems: NavigationItem[] = [
-  { label: "Dashboard", href: "/", icon: <DashboardIcon /> },
+  { label: "Dashboard", href: "/dashboard", icon: <DashboardIcon /> },
   { label: "Socios", href: "/members", icon: <MembersIcon /> },
   { label: "Pagos", href: "/payments", icon: <PaymentsIcon /> },
   { label: "Asistencias", href: "/attendance", icon: <AttendanceIcon /> },
@@ -76,12 +76,12 @@ const navigationItems: NavigationItem[] = [
 
 /** Navegación colapsada: su expansión se agregará en una iteración posterior. */
 export function Sidebar() {
-  const pathname = window.location.pathname;
+  const pathname = window.location.pathname.replace(/\/+$/, "");
   const { user } = useSession();
 
   return (
     <aside className="sidebar" aria-label="Navegación principal">
-      <a className="sidebar__brand" href="/" aria-label="Ir al inicio">
+      <a className="sidebar__brand" href="/dashboard" aria-label="Ir al inicio">
         <ForgeFitMark />
       </a>
       <nav className="sidebar__navigation">

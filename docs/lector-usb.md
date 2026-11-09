@@ -2,7 +2,7 @@
 
 El equipo informado es un X3-800. Según la publicación suministrada, decodifica códigos 1D y 2D, incluidos QR, admite lectura desde pantallas de teléfonos y se conecta por USB Plug & Play. La publicación no especifica expresamente si utiliza USB HID (teclado) o una interfaz serie.
 
-La pantalla `/check-in` ya admite lectores que escriben como teclado. En ese modo no se necesita una librería adicional. La dependencia `@zxing/browser` se utiliza para la opción de cámara de video.
+La pantalla `/check-in` admite lectores que escriben como teclado. Muestra la recepción del código, la validación y la hora del último código enviado. El navegador recibe el texto sin poder identificar si vino del lector o del teclado.
 
 ## Verificación con el equipo
 

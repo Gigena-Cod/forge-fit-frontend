@@ -3,6 +3,7 @@ import { Sidebar } from "./shared/components/Sidebar/index.ts";
 import { Header } from "./shared/components/Header/index.ts";
 import { MembersPage } from "./modules/members/presentations/Page.tsx";
 import { HomePage } from "./modules/home/presentations/Page.tsx";
+import { LandingPage } from "./modules/home/presentations/LandingPage.tsx";
 import { LoginPage } from "./modules/auth/presentations/LoginPage.tsx";
 import { RegisterPage } from "./modules/auth/presentations/RegisterPage.tsx";
 import { MemberDetailPage } from "./modules/members/presentations/Detail/Page.tsx";
@@ -20,7 +21,8 @@ function App() {
   const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
 
   return <ToastifyProvider>
-    {pathname === "/auth/register" ? <RegisterPage />
+    {pathname === "/" ? <LandingPage />
+      : pathname === "/auth/register" ? <RegisterPage />
       : pathname === "/auth/login" ? <LoginPage />
         : <SessionBoundary><AuthenticatedApp pathname={pathname} /></SessionBoundary>}
   </ToastifyProvider>;
@@ -35,7 +37,7 @@ function AuthenticatedApp({ pathname }: { pathname: string }) {
   const isAttendancePage = pathname === "/attendance";
   const isSettingsPage = pathname === "/settings";
   const page = !canVisit(user.role, pathname) ? (
-    <main className="operations-page"><div className="operations-content"><h1>Acceso restringido</h1><p>Tu rol no tiene permiso para consultar esta sección.</p><a href="/">Volver al inicio</a></div></main>
+    <main className="operations-page"><div className="operations-content"><h1>Acceso restringido</h1><p>Tu rol no tiene permiso para consultar esta sección.</p><a href="/dashboard">Volver al inicio</a></div></main>
   ) : pathname === '/check-in' ? <CheckInPage /> : pathname === '/users' ? <UsersPage /> : pathname === '/reports' ? <ReportsPage /> : isMemberDetailPage ? (
     <MemberDetailPage />
   ) : isMembersPage ? (

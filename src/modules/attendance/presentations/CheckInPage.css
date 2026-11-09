@@ -1,0 +1,25 @@
+.check-in-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.check-in-panel h3 { margin: 0; }
+.check-in-status {
+  justify-self: start;
+  border-radius: 2rem;
+  padding: .35rem .75rem;
+  font-size: .875rem;
+  font-weight: 700;
+  background: var(--ff-color-surface-container-low);
+}
+.check-in-status[data-active="true"] { color: var(--ff-color-primary); }
+.check-in-empty { padding: 1.5rem 1rem; border: 1px dashed var(--ff-color-outline); border-radius: .65rem; }
+.check-in-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin: 0; }
+.check-in-details dt { font-size: .85rem; color: var(--ff-color-on-surface-variant); }
+.check-in-details dd { margin: .25rem 0 0; font-weight: 600; overflow-wrap: anywhere; }
+
+@media (max-width: 800px) {
+  .check-in-grid { grid-template-columns: 1fr; }
+}
